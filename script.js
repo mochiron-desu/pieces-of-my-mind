@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Sort by date descending (newest first)
             data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+            // Clear loading indicator
+            container.innerHTML = '';
+
             // Render each haiku
             data.forEach((haiku, index) => {
                 const card = createHaikuCard(haiku, index);
