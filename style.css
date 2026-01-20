@@ -1,0 +1,182 @@
+:root {
+    --bg-color: #1a1a1a;
+    --card-bg: #242424;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --accent: #d4a373;
+    /* Subtle earthy gold */
+    --font-serif: 'Cormorant Garamond', serif;
+    --font-sans: 'Inter', sans-serif;
+    --spacing-unit: 1rem;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-bottom: 4rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 4rem;
+    margin-top: 2rem;
+    animation: fadeIn 1.2s ease-out;
+}
+
+h1 {
+    font-family: var(--font-serif);
+    font-weight: 300;
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+}
+
+.subtitle {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    opacity: 0.8;
+}
+
+#haiku-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+}
+
+/* Card Styles */
+.haiku-card {
+    background-color: var(--card-bg);
+    padding: 2.5rem;
+    /* margin-bottom removed as gap handles spacing now */
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 0.8s ease-out forwards;
+
+    /* Ensure cards stretch to fill height consistency */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.haiku-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.haiku-date {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    display: block;
+    opacity: 0.6;
+    letter-spacing: 0.05em;
+}
+
+.haiku-text {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-style: italic;
+    color: var(--text-primary);
+    line-height: 1.8;
+}
+
+.haiku-line {
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+footer {
+    text-align: center;
+    margin-top: 4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    opacity: 0.8;
+}
+
+.social-links {
+    margin-top: 0.5rem;
+}
+
+.social-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.social-links a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+
+    #haiku-container {
+        grid-template-columns: 1fr;
+    }
+
+    h1 {
+        font-size: 2.2rem;
+    }
+
+    .haiku-card {
+        padding: 1.5rem;
+    }
+
+    .haiku-text {
+        font-size: 1.3rem;
+    }
+}
