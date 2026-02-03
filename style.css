@@ -100,8 +100,8 @@ h1 {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     color: var(--text-primary);
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
