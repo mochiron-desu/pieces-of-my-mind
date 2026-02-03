@@ -37,7 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Sort by date descending (newest first)
             data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            allHaikus = data;
+            // Generate stable IDs for each haiku
+            allHaikus = data.map(haiku => ({
+                ...haiku,
+                id: generateHaikuId(haiku)
+            }));
 
             // Clear loading indicator
             container.innerHTML = '';
@@ -48,11 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Render each haiku
             renderHaikus(allHaikus);
 
-            // Handle URL parameters for highlighting/scrolling to specific haiku
-            handleUrlParams();
-
             // Add search event listener
             searchInput.addEventListener('input', handleSearch);
+
+            // Handle URL parameters for highlighting/scrolling to specific haiku
+            // Delay to ensure DOM is fully rendered
+            setTimeout(() => handleUrlParams(), 100);
+
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', () => {
+                handleUrlParams();
+            });
         })
         .catch(error => {
             console.error('Error fetching haikus:', error);
@@ -162,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createHaikuCard(haiku, index, globalIndex) {
         const article = document.createElement('article');
         article.className = 'haiku-card';
-        article.id = `haiku-${globalIndex}`;
+        article.id = `haiku-${haiku.id}`;
         // Add staggered animation delay
         article.style.animationDelay = `${index * 0.1}s`;
 
@@ -187,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shareBtn.setAttribute('aria-label', 'Copy share link');
         shareBtn.innerHTML = '🔗';
         shareBtn.title = 'Copy share link';
-        shareBtn.addEventListener('click', () => copyShareLink(globalIndex, shareBtn));
+        shareBtn.addEventListener('click', () => copyShareLink(haiku.id, shareBtn));
 
         const cardFooter = document.createElement('div');
         cardFooter.className = 'card-footer';
@@ -200,11 +210,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return article;
     }
 
-    function copyShareLink(index, button) {
-        const url = `${window.location.origin}${window.location.pathname}?haiku=${index}`;
+    function copyShareLink(id, button) {
+        const url = `${window.location.origin}${window.location.pathname}?haiku=${id}`;
+
+        // Update browser URL without reloading
+        window.history.pushState({ haikuId: id }, '', url);
+
+        // Copy to clipboard
         navigator.clipboard.writeText(url).then(() => {
             const originalText = button.innerHTML;
             button.innerHTML = '✓';
+
+            // Remove previous highlights
+            document.querySelectorAll('.haiku-card.highlighted').forEach(card => {
+                card.classList.remove('highlighted');
+            });
+
+            // Highlight this haiku
+            const haikuElement = document.getElementById(`haiku-${id}`);
+            if (haikuElement) {
+                haikuElement.classList.add('highlighted');
+                haikuElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
             setTimeout(() => {
                 button.innerHTML = originalText;
             }, 2000);
@@ -215,13 +243,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleUrlParams() {
         const params = new URLSearchParams(window.location.search);
-        const haikuIndex = params.get('haiku');
+        const haikuId = params.get('haiku');
 
-        if (haikuIndex !== null) {
-            const haikuElement = document.getElementById(`haiku-${haikuIndex}`);
+        if (haikuId) {
+            // Remove any existing highlights first
+            document.querySelectorAll('.haiku-card.highlighted').forEach(card => {
+                card.classList.remove('highlighted');
+            });
+
+            const haikuElement = document.getElementById(`haiku-${haikuId}`);
             if (haikuElement) {
                 haikuElement.classList.add('highlighted');
-                haikuElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Use a slight delay for smooth scrolling after render
+                setTimeout(() => {
+                    haikuElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 200);
             }
         }
     }
@@ -236,5 +272,22 @@ document.addEventListener('DOMContentLoaded', () => {
             month: 'long',
             day: 'numeric'
         });
+    }
+
+    function generateHaikuId(haiku) {
+        // Combine date and text for uniqueness
+        const content = haiku.date + haiku.text.join('');
+
+        // Simple hash function (non-cryptographic, very fast)
+        let hash = 0;
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+
+        // Convert to base36 (0-9, a-z) and take first 8 chars
+        // This gives us ~2.8 trillion possible IDs
+        return Math.abs(hash).toString(36).padStart(8, '0').substring(0, 8);
     }
 });
