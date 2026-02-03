@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('haiku-container');
+    const searchInput = document.getElementById('search-input');
+    const searchContainer = document.getElementById('search-container');
+    let allHaikus = [];
 
     // CONFIGURATION:
     // 1. Create a Google Sheet with two columns: "Date" and "Haiku Text"
@@ -34,14 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Sort by date descending (newest first)
             data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+            allHaikus = data;
+
             // Clear loading indicator
             container.innerHTML = '';
 
+            // Show search container after data loads
+            searchContainer.style.display = 'block';
+
             // Render each haiku
-            data.forEach((haiku, index) => {
-                const card = createHaikuCard(haiku, index);
-                container.appendChild(card);
-            });
+            renderHaikus(allHaikus);
+
+            // Handle URL parameters for highlighting/scrolling to specific haiku
+            handleUrlParams();
+
+            // Add search event listener
+            searchInput.addEventListener('input', handleSearch);
         })
         .catch(error => {
             console.error('Error fetching haikus:', error);
@@ -52,6 +63,34 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         });
+
+    function handleSearch(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+
+        if (searchTerm === '') {
+            renderHaikus(allHaikus);
+        } else {
+            const filtered = allHaikus.filter(haiku => {
+                const dateMatch = haiku.date.toLowerCase().includes(searchTerm);
+                const textMatch = haiku.text.some(line => line.toLowerCase().includes(searchTerm));
+                return dateMatch || textMatch;
+            });
+            renderHaikus(filtered);
+        }
+    }
+
+    function renderHaikus(haikus) {
+        container.innerHTML = '';
+        if (haikus.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #a0a0a0; padding: 2rem;">No haikus found.</div>';
+            return;
+        }
+
+        haikus.forEach((haiku, index) => {
+            const card = createHaikuCard(haiku, index, allHaikus.indexOf(haiku));
+            container.appendChild(card);
+        });
+    }
 
     function parseCSV(csvText) {
         const rows = [];
@@ -120,9 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return rows;
     }
 
-    function createHaikuCard(haiku, index) {
+    function createHaikuCard(haiku, index, globalIndex) {
         const article = document.createElement('article');
         article.className = 'haiku-card';
+        article.id = `haiku-${globalIndex}`;
         // Add staggered animation delay
         article.style.animationDelay = `${index * 0.1}s`;
 
@@ -141,10 +181,49 @@ document.addEventListener('DOMContentLoaded', () => {
             textDiv.appendChild(lineSpan);
         });
 
+        // Create share button
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'share-btn';
+        shareBtn.setAttribute('aria-label', 'Copy share link');
+        shareBtn.innerHTML = '🔗';
+        shareBtn.title = 'Copy share link';
+        shareBtn.addEventListener('click', () => copyShareLink(globalIndex, shareBtn));
+
+        const cardFooter = document.createElement('div');
+        cardFooter.className = 'card-footer';
+        cardFooter.appendChild(shareBtn);
+
         article.appendChild(dateEl);
         article.appendChild(textDiv);
+        article.appendChild(cardFooter);
 
         return article;
+    }
+
+    function copyShareLink(index, button) {
+        const url = `${window.location.origin}${window.location.pathname}?haiku=${index}`;
+        navigator.clipboard.writeText(url).then(() => {
+            const originalText = button.innerHTML;
+            button.innerHTML = '✓';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+        }).catch(() => {
+            alert('Failed to copy link');
+        });
+    }
+
+    function handleUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        const haikuIndex = params.get('haiku');
+
+        if (haikuIndex !== null) {
+            const haikuElement = document.getElementById(`haiku-${haikuIndex}`);
+            if (haikuElement) {
+                haikuElement.classList.add('highlighted');
+                haikuElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
     }
 
     function formatDate(dateString) {
