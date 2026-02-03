@@ -85,6 +85,35 @@ h1 {
     text-transform: uppercase;
     letter-spacing: 0.2em;
     opacity: 0.8;
+    margin-bottom: 1.5rem;
+}
+
+#search-container {
+    margin-top: 2rem;
+}
+
+#search-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.75rem 1rem;
+    background-color: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#search-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(212, 163, 115, 0.2);
 }
 
 #haiku-container {
@@ -139,6 +168,45 @@ h1 {
 .haiku-line {
     display: block;
     margin-bottom: 0.2rem;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.share-btn {
+    background: none;
+    border: 1px solid rgba(212, 163, 115, 0.3);
+    color: var(--accent);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.share-btn:hover {
+    background-color: rgba(212, 163, 115, 0.1);
+    border-color: var(--accent);
+}
+
+.share-btn:active {
+    transform: scale(0.95);
+}
+
+.haiku-card.highlighted {
+    background-color: rgba(212, 163, 115, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(212, 163, 115, 0.2);
 }
 
 footer {
