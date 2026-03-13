@@ -3,11 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const searchContainer = document.getElementById('search-container');
     let allHaikus = [];
+    let currentHaiku = null;
 
-    // CONFIGURATION:
-    // 1. Create a Google Sheet with two columns: "Date" and "Haiku Text"
-    // 2. File > Share > Publish to web > Link > Select "Comma-separated values (.csv)"
-    // 3. Paste the generated link below.
     // CONFIGURATION:
     // 1. Create a Google Sheet with two columns: "Date" and "Haiku Text"
     // 2. File > Share > Publish to web > Link > Select "Comma-separated values (.csv)"
@@ -21,10 +18,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log(`Fetching from: ${dataSource}`);
 
+    // Animate loading dots
+    let dotCount = 1;
+    const loadingDotsInterval = setInterval(() => {
+        const dotsElement = document.querySelector('.loading-dots');
+        if (dotsElement) {
+            dotCount = dotCount === 3 ? 1 : dotCount + 1;
+            dotsElement.textContent = '.'.repeat(dotCount);
+        }
+    }, 400);
+
     fetch(dataSource)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
-            return response.text(); // fetch as text first
+            return response.text();
         })
         .then(text => {
             let data;
@@ -43,7 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: generateHaikuId(haiku)
             }));
 
-            // Clear loading indicator
+            // Clear loading interval and indicator
+            clearInterval(loadingDotsInterval);
             container.innerHTML = '';
 
             // Show search container after data loads
@@ -56,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.addEventListener('input', handleSearch);
 
             // Handle URL parameters for highlighting/scrolling to specific haiku
-            // Delay to ensure DOM is fully rendered
             setTimeout(() => handleUrlParams(), 100);
 
             // Handle browser back/forward buttons
@@ -66,9 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => {
             console.error('Error fetching haikus:', error);
+            clearInterval(loadingDotsInterval);
             container.innerHTML = `
             <div style="text-align: center; color: #a0a0a0;">
-                <p>Unable to load thoughts...</p>
+                <p>Unable to load haikus...</p>
                 <small>${error.message}</small>
             </div>
         `;
@@ -97,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         haikus.forEach((haiku, index) => {
-            const card = createHaikuCard(haiku, index, allHaikus.indexOf(haiku));
+            const card = createHaikuCard(haiku, index);
             container.appendChild(card);
         });
     }
@@ -108,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentCell = '';
         let inQuotes = false;
 
-        // Normalize line endings
         const text = csvText.replace(/\r\n/g, '\n');
 
         for (let i = 0; i < text.length; i++) {
@@ -118,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (inQuotes) {
                 if (char === '"') {
                     if (nextChar === '"') {
-                        currentCell += '"'; // Handle escaped quotes
+                        currentCell += '"';
                         i++;
                     } else {
                         inQuotes = false;
@@ -134,15 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentCell = '';
                 } else if (char === '\n') {
                     currentRow.push(currentCell.trim());
-                    if (currentRow.length >= 2) { // Ensure we have at least Date and Text
-                        // Skip header row if it contains "Haiku Text" or "Date"
+                    if (currentRow.length >= 2) {
                         const isHeader = currentRow[0].toLowerCase().includes('date') &&
                             currentRow[1].toLowerCase().includes('text');
 
                         if (!isHeader && currentRow[0] && currentRow[1]) {
                             rows.push({
                                 date: currentRow[0],
-                                // Split text by newlines to match existing format
                                 text: currentRow[1].split('\n').map(line => line.trim()).filter(l => l)
                             });
                         }
@@ -155,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Handle last row if no newline at EOF
         if (currentCell || currentRow.length > 0) {
             currentRow.push(currentCell.trim());
             if (currentRow.length >= 2 && currentRow[0] && currentRow[1]) {
@@ -169,11 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return rows;
     }
 
-    function createHaikuCard(haiku, index, globalIndex) {
+    function createHaikuCard(haiku, index) {
         const article = document.createElement('article');
         article.className = 'haiku-card';
         article.id = `haiku-${haiku.id}`;
-        // Add staggered animation delay
         article.style.animationDelay = `${index * 0.1}s`;
 
         const dateEl = document.createElement('time');
@@ -191,13 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
             textDiv.appendChild(lineSpan);
         });
 
-        // Create share button
         const shareBtn = document.createElement('button');
         shareBtn.className = 'share-btn';
         shareBtn.setAttribute('aria-label', 'Copy share link');
-        shareBtn.innerHTML = '🔗';
+        shareBtn.innerHTML = '✦ Share';
         shareBtn.title = 'Copy share link';
-        shareBtn.addEventListener('click', () => copyShareLink(haiku.id, shareBtn));
+        shareBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyShareLink(haiku.id, shareBtn);
+        });
 
         const cardFooter = document.createElement('div');
         cardFooter.className = 'card-footer';
@@ -207,26 +212,24 @@ document.addEventListener('DOMContentLoaded', () => {
         article.appendChild(textDiv);
         article.appendChild(cardFooter);
 
+        article.addEventListener('click', () => openShareModal(haiku.id));
+
         return article;
     }
 
     function copyShareLink(id, button) {
         const url = `${window.location.origin}${window.location.pathname}?haiku=${id}`;
 
-        // Update browser URL without reloading
         window.history.pushState({ haikuId: id }, '', url);
 
-        // Copy to clipboard
         navigator.clipboard.writeText(url).then(() => {
             const originalText = button.innerHTML;
             button.innerHTML = '✓';
 
-            // Remove previous highlights
             document.querySelectorAll('.haiku-card.highlighted').forEach(card => {
                 card.classList.remove('highlighted');
             });
 
-            // Highlight this haiku
             const haikuElement = document.getElementById(`haiku-${id}`);
             if (haikuElement) {
                 haikuElement.classList.add('highlighted');
@@ -241,12 +244,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function openShareModal(id) {
+        const haiku = allHaikus.find(h => h.id === id);
+        if (haiku) {
+            currentHaiku = haiku;
+            document.getElementById('modal-haiku-text').innerHTML = 
+                haiku.text.map(line => `<span class="modal-haiku-line">${line}</span>`).join('');
+            
+            const modal = document.getElementById('share-modal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            document.querySelectorAll('.haiku-card.highlighted').forEach(card => {
+                card.classList.remove('highlighted');
+            });
+            const haikuElement = document.getElementById(`haiku-${id}`);
+            if (haikuElement) {
+                haikuElement.classList.add('highlighted');
+            }
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('share-modal').classList.remove('active');
+        document.body.style.overflow = 'auto';
+        currentHaiku = null;
+    }
+
+    function copyToClipboard() {
+        if (currentHaiku) {
+            const text = currentHaiku.text.join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Haiku copied to clipboard!');
+            });
+        }
+    }
+
+    function shareHaiku() {
+        if (currentHaiku) {
+            const url = `${window.location.origin}${window.location.pathname}?haiku=${currentHaiku.id}`;
+
+            window.history.pushState({ haikuId: currentHaiku.id }, '', url);
+
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Share link copied to clipboard!');
+                closeModal();
+            }).catch(() => {
+                alert('Failed to copy link');
+            });
+        }
+    }
+
     function handleUrlParams() {
         const params = new URLSearchParams(window.location.search);
         const haikuId = params.get('haiku');
 
         if (haikuId) {
-            // Remove any existing highlights first
             document.querySelectorAll('.haiku-card.highlighted').forEach(card => {
                 card.classList.remove('highlighted');
             });
@@ -254,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const haikuElement = document.getElementById(`haiku-${haikuId}`);
             if (haikuElement) {
                 haikuElement.classList.add('highlighted');
-                // Use a slight delay for smooth scrolling after render
                 setTimeout(() => {
                     haikuElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 200);
@@ -264,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatDate(dateString) {
         const date = new Date(dateString);
-        // Put check here just in case invalid date
         if (isNaN(date.getTime())) return dateString;
 
         return date.toLocaleDateString('en-US', {
@@ -275,19 +326,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateHaikuId(haiku) {
-        // Combine date and text for uniqueness
         const content = haiku.date + haiku.text.join('');
 
-        // Simple hash function (non-cryptographic, very fast)
         let hash = 0;
         for (let i = 0; i < content.length; i++) {
             const char = content.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32-bit integer
+            hash = hash & hash;
         }
 
-        // Convert to base36 (0-9, a-z) and take first 8 chars
-        // This gives us ~2.8 trillion possible IDs
         return Math.abs(hash).toString(36).padStart(8, '0').substring(0, 8);
     }
+
+    // Expose modal functions globally
+    window.closeModal = closeModal;
+    window.copyToClipboard = copyToClipboard;
+    window.shareHaiku = shareHaiku;
+
+    // Modal event listeners
+    document.getElementById('share-modal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('share-modal')) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
 });
